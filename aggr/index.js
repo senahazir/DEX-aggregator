@@ -18,10 +18,9 @@ async function listAvailableTokens(){
   tokens = tokenListJSON.tokens
   console.log("tokens:", tokens);
 
-  // create token list for modal
+  // token list
   let parent = document.getElementById("token_list");
   for (const i in tokens){
-    // token row in the modal token list
     let div = document.createElement("div");
     div.className = "token_row";
     let html = `
@@ -65,7 +64,6 @@ async function connect() {
           console.log(error);
         }
         document.getElementById("login_button").innerHTML = "Connected";
-        // const accounts = await ethereum.request({ method: "eth_accounts" });
         document.getElementById("swap_button").disabled = false;
       } else {
         document.getElementById("login_button").innerHTML =
@@ -93,11 +91,8 @@ async function getPrice(){
     buyToken: currentTrade.to.address,
     sellAmount: amount,
   }
-
-  // Fetch the swap price.
-  const response = await fetch(
-    `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
-    );
+//swap price
+  const response = await fetch(`https://api.0x.org/swap/v1/price?${qs.stringify(params)}`);
   
   swapPriceJSON = await response.json();
   console.log("Price: ", swapPriceJSON);
@@ -107,7 +102,6 @@ async function getPrice(){
 }
 
 init();
-
 document.getElementById("login_button").onclick = connect;
 document.getElementById("from_token_select").onclick = () => {
   openModal("from");
