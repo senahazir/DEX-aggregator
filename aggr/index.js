@@ -1,4 +1,5 @@
 
+const { CreateTransactionRequest } = require('fuels');
 const qs = require('qs');
 
 let currentTrade = {};
@@ -82,8 +83,12 @@ function closeModal(){
 
 async function getPrice(){
   console.log("Getting Price");
+  
 
-  if (!currentTrade.from || !currentTrade.to || !document.getElementById("from_amount").value) return;
+  if (!currentTrade.from || !currentTrade.to || !document.getElementById("from_amount").value) {
+    return;
+  }
+  
   let amount = Number(document.getElementById("from_amount").value * 10 ** currentTrade.from.decimals);
 
   const params = {
@@ -91,17 +96,296 @@ async function getPrice(){
     buyToken: currentTrade.to.address,
     sellAmount: amount,
   }
-//swap price
-  const response = await fetch(`https://api.0x.org/swap/v1/price?${qs.stringify(params)}`);
+
+  // swap prices
+  const response = await fetch(
+    `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
+    );
   
   swapPriceJSON = await response.json();
   console.log("Price: ", swapPriceJSON);
+  
+  //not yet working 
+  if (isNaN(swapPriceJSON.buyAmount)) {
+    document.getElementById("to_amount").innerHTML = "Not Enough Liquidity";
+  }
   
   document.getElementById("to_amount").value = swapPriceJSON.buyAmount / (10 ** currentTrade.to.decimals);
   document.getElementById("gas_estimate").innerHTML = swapPriceJSON.estimatedGas;
 }
 
+async function getQuote(account) {
+  console.log("Getting quote");
+  if (!currentTrade.from || !currentTrade.to || !document.getElementById("from_amount").value) {
+    return;
+  }
+
+  let amount = Number(get.getElementById("from_amount").value * 10 ** currentTrade.from.decimals);
+  const params = {
+    sellToken : currentTrade.from.address,
+    buyToken : currentTrade.to.address,
+    sellAmount : amount,
+    takerAddress : account,
+  }
+
+  const response = await fetch(
+    `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
+    );
+  
+  swapQuoteJSON = await response.json();
+  console.log("Price: ", swapQuoteJSON);
+  document.getElementById("to_amount").value = swapQuoteJSON.buyAmount / (10 ** currentTrade.to.decimals);
+  document.getElementById("gas_estimate").innerHTML = swapQuoteJSON.estimatedGas;
+
+  return swapQuoteJSON;
+
+}
+
+async function trySwap() {
+  let accounts = await ethereum.request({method : "eth_accounts"});
+  let takerAddress = accounts[0];
+  console.log("Taker Address", takerAddress);
+  const swapQuoteJSON = await  getQuote(takerAddress);
+  
+  const erc20abi = [
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "name",
+        "outputs": [
+            {
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_spender",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "approve",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address"
+            },
+            {
+                "name": "_to",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "transferFrom",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "address"
+            }
+        ],
+        "name": "balanceOf",
+        "outputs": [
+            {
+                "name": "balance",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [
+            {
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "transfer",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "address"
+            },
+            {
+                "name": "_spender",
+                "type": "address"
+            }
+        ],
+        "name": "allowance",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "fallback"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Approval",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Transfer",
+        "type": "event"
+    }
+]
+const fromTokenAddress = currentTrade.from.address;
+const  web3 = new  Web3(Web3.givenProvider);
+const ERC20TokenContract = new web3.eth.Contract(erc20abi, fromTokenAddress);
+console.log("setup ERC20TokenContract: ", ERC20TokenContract);
+const maxApproval = new BigNumber(2).pow(256).minus(1);
+console.log("approval amount: ", maxApproval);
+
+const tx = await ERC20TokenContract.methods.approve(swapQuoteJSON.allowanceTarget, maxApproval).send({from : takerAddress}).then(tx => console.log("tx :", tx));
+
+const receipt = web3.eth.sendTransaction(swapQuoteJSON);
+console.log("receipt", receipt);
+
+}
+
+
 init();
+
 document.getElementById("login_button").onclick = connect;
 document.getElementById("from_token_select").onclick = () => {
   openModal("from");
